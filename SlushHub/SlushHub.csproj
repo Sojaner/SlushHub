@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Libraries\Bespoke\Bespoke.Common.Osc\Bespoke.Common.Osc.csproj" />
+    <ProjectReference Include="..\Libraries\bespoke.osc\Bespoke.Common.Osc\Bespoke.Common.Osc.csproj" />
   </ItemGroup>
 
 </Project>

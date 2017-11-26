@@ -1,0 +1,3 @@
+[submodule "Libraries/bespoke.osc"]
+	path = Libraries/bespoke.osc
+	url = https://Sojaner@bitbucket.org/Sojaner/bespoke.osc.git
