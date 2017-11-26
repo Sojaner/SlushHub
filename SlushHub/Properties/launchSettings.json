@@ -2,7 +2,7 @@
   "profiles": {
     "SlushHub": {
       "commandName": "Project",
-      "commandLineArgs": "--listening-ip:192.168.1.20 --listening-port:8888 --forwarding-ips:192.168.1.30,192.168.1.40 --forwarding-port:8889 --log"
+      "commandLineArgs": "--listening-ip:100.100.100.100 --listening-port:8888 --forwarding-ips:192.168.1.30,192.168.1.40 --forwarding-port:8889 --log"
     }
   }
 }

@@ -156,22 +156,22 @@ namespace SlushHub
                 }
             }
 
-            OscServer oscServer = new OscServer(listeningIP, listeningPort);
+            OscServer oscServer = new OscServer(TransportType.Udp, listeningIP, listeningPort);
 
             oscServer.RegisterMethod("/");
 
             oscServer.PacketReceived += (sender, eventArgs) =>
             {
+                if (log)
+                {
+                    Logger.Instance.Log(eventArgs.Packet.Address);
+                }
+
                 foreach (OscClient client in clients)
                 {
                     Task.Run(() =>
                     {
                         client.Send(eventArgs.Packet);
-
-                        if (log)
-                        {
-                            Logger.Instance.Log($"");
-                        }
                     });
                 }
             };
