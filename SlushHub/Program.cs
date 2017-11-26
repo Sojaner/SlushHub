@@ -4,8 +4,10 @@ using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Bespoke.Common.Net;
 using Bespoke.Common.Osc;
+using SlushHub.Logging;
 
 namespace SlushHub
 {
@@ -32,6 +34,13 @@ namespace SlushHub
 
             int forwardingPort;
 
+            bool log = args.Any(argument => argument.Equals("--log"));
+
+            if (log)
+            {
+                Logger.Instance.Start();
+            }
+
             try
             {
                 listeningIP = IPAddress.Parse(args.Single(argument => Regex.IsMatch(argument, @"--listening-ip:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")).Split(":")[1].Trim());
@@ -39,11 +48,23 @@ namespace SlushHub
                 if (!IPServer.GetLocalIPAddresses().Contains(listeningIP))
                 {
                     Console.WriteLine("Warning: 'Listening IP Address' does not belong to this device.");
+
+                    if (log)
+                    {
+                        Logger.Instance.Log("Warning: 'Listening IP Address' does not belong to this device.");
+                    }
                 }
             }
             catch
             {
                 Console.WriteLine("Error: Problem with 'Listening IP Address'.");
+
+                if (log)
+                {
+                    Logger.Instance.Log("Error: Problem with 'Listening IP Address'.");
+
+                    Logger.Instance.Flush();
+                }
 
                 return;
             }
@@ -56,6 +77,13 @@ namespace SlushHub
             {
                 Console.WriteLine("Error: Problem with 'Forwarding IP Addresses'.");
 
+                if (log)
+                {
+                    Logger.Instance.Log("Error: Problem with 'Forwarding IP Addresses'.");
+
+                    Logger.Instance.Flush();
+                }
+
                 return;
             }
 
@@ -67,6 +95,13 @@ namespace SlushHub
             {
                 Console.WriteLine("Error: Problem with 'Listening Port'.");
 
+                if (log)
+                {
+                    Logger.Instance.Log("Error: Problem with 'Listening Port'.");
+
+                    Logger.Instance.Flush();
+                }
+
                 return;
             }
 
@@ -77,6 +112,13 @@ namespace SlushHub
             catch
             {
                 Console.WriteLine("Error: Problem with 'Forwarding Port'.");
+
+                if (log)
+                {
+                    Logger.Instance.Log("Error: Problem with 'Forwarding Port'.");
+
+                    Logger.Instance.Flush();
+                }
 
                 return;
             }
@@ -94,6 +136,11 @@ namespace SlushHub
                 catch
                 {
                     Console.WriteLine($"Warning: Couldn't connect to {forwardingIPs[i]}:{forwardingPort}.");
+
+                    if (log)
+                    {
+                        Logger.Instance.Log($"Warning: Couldn't connect to {forwardingIPs[i]}:{forwardingPort}.");
+                    }
                 }
             }
 
@@ -102,6 +149,11 @@ namespace SlushHub
             if (clients.Length == 0)
             {
                 Console.WriteLine("Warning: Couldn't connect to any of the 'Forwarding IP Addresses'.");
+
+                if (log)
+                {
+                    Logger.Instance.Log("Warning: Couldn't connect to any of the 'Forwarding IP Addresses'.");
+                }
             }
 
             OscServer oscServer = new OscServer(listeningIP, listeningPort);
@@ -112,7 +164,15 @@ namespace SlushHub
             {
                 foreach (OscClient client in clients)
                 {
-                    client.Send(eventArgs.Packet);
+                    Task.Run(() =>
+                    {
+                        client.Send(eventArgs.Packet);
+
+                        if (log)
+                        {
+                            Logger.Instance.Log($"");
+                        }
+                    });
                 }
             };
 
@@ -124,10 +184,22 @@ namespace SlushHub
             {
                 Console.WriteLine("Error: Couldn't start the OSC server, probably because of a problem in 'Listening IP Address'.");
 
+                if (log)
+                {
+                    Logger.Instance.Log("Error: Couldn't start the OSC server, probably because of a problem in 'Listening IP Address'.");
+
+                    Logger.Instance.Flush();
+                }
+
                 return;
             }
 
             manualResetEventSlim.Wait();
+
+            if (log)
+            {
+                Logger.Instance.Flush();
+            }
         }
     }
 }
