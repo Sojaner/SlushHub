@@ -24,10 +24,6 @@ namespace SlushHub
             timer.Elapsed += TimerOnElapsed;
         }
 
-        //gsr
-        //pulse
-        //bpm
-
         private void TimerOnElapsed(object sender, ElapsedEventArgs elapsedEventArgs)
         {
             foreach (IPAddress address in forwardingIPAddresses)
@@ -35,56 +31,17 @@ namespace SlushHub
                 Task.Run(() =>
                 {
                     IPEndPoint ipEndPoint = new IPEndPoint(address, 9999);
-                    //
-                    string oscAddress = "/emotion";
-                    
-                    double value = processor[oscAddress];
 
-                    OscMessage message = new OscMessage(ipEndPoint, oscAddress);
+                    foreach (string oscAddress in processor.Addresses)
+                    {
+                        int value = processor[oscAddress];
 
-                    message.Append(value);
+                        OscMessage message = new OscMessage(ipEndPoint, oscAddress);
 
-                    message.Send(ipEndPoint);
-                    //
-                    oscAddress = "/reason";
+                        message.Append(value);
 
-                    value = processor[oscAddress];
-
-                    message = new OscMessage(ipEndPoint, oscAddress);
-
-                    message.Append(value);
-
-                    message.Send(ipEndPoint);
-                    //
-                    oscAddress = "/reason";
-
-                    value = processor[oscAddress];
-
-                    message = new OscMessage(ipEndPoint, oscAddress);
-
-                    message.Append(value);
-
-                    message.Send(ipEndPoint);
-                    //
-                    oscAddress = "/reason";
-
-                    value = processor[oscAddress];
-
-                    message = new OscMessage(ipEndPoint, oscAddress);
-
-                    message.Append(value);
-
-                    message.Send(ipEndPoint);
-                    //
-                    oscAddress = "/reason";
-
-                    value = processor[oscAddress];
-
-                    message = new OscMessage(ipEndPoint, oscAddress);
-
-                    message.Append(value);
-
-                    message.Send(ipEndPoint);
+                        message.Send(ipEndPoint);
+                    }
                 });
             }
         }

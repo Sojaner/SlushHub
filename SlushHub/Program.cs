@@ -19,27 +19,38 @@ namespace SlushHub
 
             if (!args.Any(argument => Regex.IsMatch(argument, @"--fis:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:,\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})*")))
             {
-                Console.WriteLine($"Usage: {Assembly.GetExecutingAssembly().GetName().Name} --fis:xxx.xxx.xxx.xxx[,xxx.xxx.xxx.xxx...] -i:xxx");
+                Console.WriteLine($"Usage: {Assembly.GetExecutingAssembly().GetName().Name} --fis:xxx.xxx.xxx.xxx[,xxx.xxx.xxx.xxx...] --ws:xxxx --oi:xxxx");
 
-                Console.WriteLine($"Example: {Assembly.GetExecutingAssembly().GetName().Name} --fis:192.168.1.30,192.168.1.42 -i:xxx");
+                Console.WriteLine($"Example: {Assembly.GetExecutingAssembly().GetName().Name} --fis:192.168.1.30,192.168.1.42 --ws:100 --oi:125");
 
                 return;
             }
 
             IPAddress[] forwardingIPs;
 
-            int interval = 250;
+            int interval = 125;
 
-            Processor processor = new Processor(100);
+            int windowSize = 50;
 
             try
             {
-                interval = int.Parse(args.Single(argument => Regex.IsMatch(argument, @"--i:\d{1,5}")));
+                interval = int.Parse(args.Single(argument => Regex.IsMatch(argument, @"--io:\d{1,5}")).Split(":")[1].Trim());
             }
             catch
             {
                 //
             }
+
+            try
+            {
+                windowSize = int.Parse(args.Single(argument => Regex.IsMatch(argument, @"--ws:\d{1,5}")).Split(":")[1].Trim());
+            }
+            catch
+            {
+                //
+            }
+
+            Processor processor = new Processor(windowSize);
 
             try
             {
@@ -56,7 +67,14 @@ namespace SlushHub
 
             oscServer.PacketReceived += (sender, eventArgs) =>
             {
-                processor.InsertOscPacket(eventArgs.Packet);
+                try
+                {
+                    processor.InsertOscPacket(eventArgs.Packet);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"OSC Packet Error: {e.Message}");
+                }
             };
 
             try
@@ -74,7 +92,14 @@ namespace SlushHub
 
             emotionListener.DataReceived += (sender, data) =>
             {
-                processor.InsertEmotion(data);
+                try
+                {
+                    processor.InsertEmotion(data);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Emotion Error: {e.Message}");
+                }
             };
 
             emotionListener.Start();
@@ -83,7 +108,14 @@ namespace SlushHub
 
             reasonListener.DataReceived += (sender, data) =>
             {
-                processor.InsertReason(data);
+                try
+                {
+                    processor.InsertReason(data);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Reason Error: {e.Message}");
+                }
             };
 
             reasonListener.Start();

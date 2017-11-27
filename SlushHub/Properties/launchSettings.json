@@ -2,7 +2,7 @@
   "profiles": {
     "SlushHub": {
       "commandName": "Project",
-      "commandLineArgs": "--fis:100.100.100.200 -i:250"
+      "commandLineArgs": "--fis:100.100.100.111,100.100.100.123 --ws:50 --oi:125"
     }
   }
 }

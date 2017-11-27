@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading.Tasks;
 using Bespoke.Common.Osc;
 using SlushHub.Statistics;
@@ -51,6 +52,8 @@ namespace SlushHub
             });
         }
 
-        public double this[string index] => packetStatisticses.ContainsKey(index) ? packetStatisticses[index].MovingMean : 0;
+        public int this[string index] => packetStatisticses.ContainsKey(index) ? (int)packetStatisticses[index].Mean : 0;
+
+        public string[] Addresses => packetStatisticses.Keys.ToArray();
     }
 }

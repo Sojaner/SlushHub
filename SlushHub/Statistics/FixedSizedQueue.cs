@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 
 namespace SlushHub.Statistics
 {
-    public class FixedSizedQueue<T> : Queue<T>
+    public class FixedSizedQueue<T> : ConcurrentQueue<T>
     {
         private int capacity;
 
@@ -18,7 +18,7 @@ namespace SlushHub.Statistics
             }
         }
 
-        public FixedSizedQueue(int capacity) : base(capacity)
+        public FixedSizedQueue(int capacity)
         {
             Capacity = capacity;
         }
@@ -27,7 +27,7 @@ namespace SlushHub.Statistics
         {
             if (Count == Capacity)
             {
-                Dequeue();
+                TryDequeue(out _);
             }
 
             base.Enqueue(item);
@@ -37,13 +37,16 @@ namespace SlushHub.Statistics
         {
             while (Count > Capacity)
             {
-                Dequeue();
+                TryDequeue(out _);
             }
         }
 
-        public new void TrimExcess()
+        public void TrimExcess()
         {
-            base.TrimExcess();
+            while (Count > Capacity)
+            {
+                TryDequeue(out _);
+            }
 
             Capacity = Count;
         }
