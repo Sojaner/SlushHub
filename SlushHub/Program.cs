@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -15,6 +16,22 @@ namespace SlushHub
     {
         private static void Main(string[] args)
         {
+            OscPacket.UdpClient = new UdpClient();
+
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    OscMessage message = new OscMessage(new IPEndPoint(IPAddress.Parse("192.168.0.18"), 8888), "/");
+
+                    message.Append(DateTime.UtcNow.ToString("T"));
+
+                    message.Send(new IPEndPoint(IPAddress.Parse("192.168.0.18"), 8888));
+
+                    Thread.Sleep(500);
+                }
+            });
+
             ManualResetEventSlim manualResetEventSlim = new ManualResetEventSlim(false);
 
             if (!args.Any(argument => Regex.IsMatch(argument, @"--listening-ip:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")) || !args.Any(argument => Regex.IsMatch(argument, @"--forwarding-ips:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:,\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})*")) || !args.Any(argument => Regex.IsMatch(argument, @"--listening-port:\d{1,3}")) || !args.Any(argument => Regex.IsMatch(argument, @"--forwarding-port:\d{1,3}")))
@@ -123,39 +140,6 @@ namespace SlushHub
                 return;
             }
 
-            OscClient[] clients = new OscClient[forwardingIPs.Length];
-
-            for (int i = 0; i < forwardingIPs.Length; i++)
-            {
-                clients[i] = new OscClient(forwardingIPs[i], forwardingPort);
-
-                try
-                {
-                    clients[i].Connect();
-                }
-                catch
-                {
-                    Console.WriteLine($"Warning: Couldn't connect to {forwardingIPs[i]}:{forwardingPort}.");
-
-                    if (log)
-                    {
-                        Logger.Instance.Log($"Warning: Couldn't connect to {forwardingIPs[i]}:{forwardingPort}.");
-                    }
-                }
-            }
-
-            clients = clients.Where(client => client.IsConnected).ToArray();
-
-            if (clients.Length == 0)
-            {
-                Console.WriteLine("Warning: Couldn't connect to any of the 'Forwarding IP Addresses'.");
-
-                if (log)
-                {
-                    Logger.Instance.Log("Warning: Couldn't connect to any of the 'Forwarding IP Addresses'.");
-                }
-            }
-
             OscServer oscServer = new OscServer(TransportType.Udp, listeningIP, listeningPort);
 
             oscServer.RegisterMethod("/");
@@ -164,14 +148,20 @@ namespace SlushHub
             {
                 if (log)
                 {
-                    Logger.Instance.Log(eventArgs.Packet.Address);
+                    Logger.Instance.Log(eventArgs.Packet.At<string>(0));
                 }
 
-                foreach (OscClient client in clients)
+                foreach (IPAddress forwardingIP in forwardingIPs)
                 {
                     Task.Run(() =>
                     {
-                        client.Send(eventArgs.Packet);
+                        IPEndPoint ipEndPoint = new IPEndPoint(forwardingIP, forwardingPort);
+
+                        OscMessage message = new OscMessage(ipEndPoint, "/");
+
+                        message.Append("Hello!");
+
+                        message.Send(ipEndPoint);
                     });
                 }
             };
