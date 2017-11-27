@@ -12,7 +12,7 @@ namespace SlushHub.Statistics
 
         public int Count => values.Count;
 
-        public double MovingMean => values.Average();
+        public double MovingMean => values != null && !values.IsEmpty ? values.Average() : 0;
 
         public double Mean => MovingMean;
 

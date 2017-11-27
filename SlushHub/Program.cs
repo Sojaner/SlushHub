@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Bespoke.Common.Osc;
 
 namespace SlushHub
@@ -63,6 +64,8 @@ namespace SlushHub
                 return;
             }
 
+            Pulser pulser = new Pulser(windowSize, forwardingIPs);
+
             OscServer oscServer = new OscServer(TransportType.Udp, IPAddress.Any, 8888);
 
             oscServer.PacketReceived += (sender, eventArgs) =>
@@ -70,6 +73,38 @@ namespace SlushHub
                 try
                 {
                     processor.InsertOscPacket(eventArgs.Packet);
+
+                    Task.Run(() =>
+                    {
+                        if (eventArgs.Packet.Address.StartsWith("/person") && eventArgs.Packet.Address.EndsWith("/bpm"))
+                        {
+                            int person = int.Parse(eventArgs.Packet.Address.Split("/person")[1].Split("/")[0]);
+
+                            int bpm = eventArgs.Packet.At<int>(0);
+
+                            switch (person)
+                            {
+                                case 1:
+                                {
+                                    pulser.Push1(bpm);
+
+                                    break;
+                                }
+                                case 2:
+                                {
+                                    pulser.Push2(bpm);
+
+                                    break;
+                                }
+                                case 3:
+                                {
+                                    pulser.Push3(bpm);
+
+                                    break;
+                                }
+                            }
+                        }
+                    });
                 }
                 catch (Exception e)
                 {

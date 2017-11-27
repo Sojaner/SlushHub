@@ -11,7 +11,7 @@ namespace SlushHub
 
         private readonly IPAddress[] forwardingIPAddresses;
 
-        private readonly Timer timer;
+        private readonly Timer dispatchTimer;
 
         public Broadcaster(int interval, Processor processor, IPAddress[] forwardingIPAddresses)
         {
@@ -19,12 +19,12 @@ namespace SlushHub
 
             this.forwardingIPAddresses = forwardingIPAddresses;
 
-            timer = new Timer(interval);
+            dispatchTimer = new Timer(interval);
 
-            timer.Elapsed += TimerOnElapsed;
+            dispatchTimer.Elapsed += DispatchTimerOnElapsed;
         }
 
-        private void TimerOnElapsed(object sender, ElapsedEventArgs elapsedEventArgs)
+        private void DispatchTimerOnElapsed(object sender, ElapsedEventArgs elapsedEventArgs)
         {
             foreach (IPAddress address in forwardingIPAddresses)
             {
@@ -48,7 +48,7 @@ namespace SlushHub
 
         public void Start()
         {
-            timer.Start();
+            dispatchTimer.Start();
         }
     }
 }
