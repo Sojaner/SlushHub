@@ -20,7 +20,14 @@ namespace SlushHub
 
             Log = () =>
             {
-                foreach (KeyValuePair<string, DataStatistics> dataStatisticse in packetStatisticses)
+                foreach (KeyValuePair<string, DataStatistics> dataStatisticse in packetStatisticses.Where(pair => pair.Key.StartsWith("/person")).OrderBy(pair => pair.Key))
+                {
+                    Console.WriteLine($"{dataStatisticse.Key}: {dataStatisticse.Value.Mean}");
+                }
+
+                Console.WriteLine();
+
+                foreach (KeyValuePair<string, DataStatistics> dataStatisticse in packetStatisticses.Where(pair => !pair.Key.StartsWith("/person")).OrderBy(pair => pair.Key))
                 {
                     Console.WriteLine($"{dataStatisticse.Key}: {dataStatisticse.Value.Mean}");
                 }
