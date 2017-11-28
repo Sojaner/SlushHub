@@ -211,11 +211,23 @@ namespace SlushHub
                     {
                         Console.Clear();
 
+                        Console.BackgroundColor = ConsoleColor.DarkGray;
+
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+
                         pulser.Log();
+
+                        Console.WriteLine();
+
+                        Console.ForegroundColor = ConsoleColor.DarkBlue;
 
                         emotionListener.Log();
 
                         reasonListener.Log();
+
+                        Console.WriteLine();
+
+                        Console.ForegroundColor = ConsoleColor.White;
 
                         processor.Log();
 

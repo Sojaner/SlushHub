@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -96,13 +97,13 @@ namespace SlushHub
 
             Log = () =>
             {
-                Console.WriteLine($"0: {timer0.Interval} {timer0.Enabled} {calls0}");
+                Console.WriteLine($"AV: {timer0.Interval} {timer0.Enabled} {calls0}");
 
-                Console.WriteLine($"1: {timer1.Interval} {timer1.Enabled} {called1}");
+                Console.WriteLine($"P1: {timer1.Interval} {timer1.Enabled} {called1}");
 
-                Console.WriteLine($"2: {timer2.Interval} {timer2.Enabled} {called2}");
+                Console.WriteLine($"P2: {timer2.Interval} {timer2.Enabled} {called2}");
 
-                Console.WriteLine($"3: {timer3.Interval} {timer3.Enabled} {called3}");
+                Console.WriteLine($"P3: {timer3.Interval} {timer3.Enabled} {called3}");
             };
         }
 
@@ -123,7 +124,11 @@ namespace SlushHub
 
         private void Push0()
         {
-            int average = (int)new double[] { dataStatistics1.Mean, dataStatistics2.Mean, dataStatistics3.Mean }.Average();
+            List<double> doubles = new List<double>(new double[] { dataStatistics1.Mean, dataStatistics2.Mean, dataStatistics3.Mean });
+
+            doubles.RemoveAll(d => d <= 0);
+
+            int average = (int)doubles.Average();
 
             SetInterval(average, timer0);
         }
@@ -167,19 +172,9 @@ namespace SlushHub
                 {
                     timer.Interval = interval;
 
-                    if (timer != timer0)
+                    if (!timer.Enabled)
                     {
-                        if (!timer.Enabled)
-                        {
-                            timer.Enabled = true;
-                        }
-                    }
-                    else
-                    {
-                        if (timer1.Enabled && timer2.Enabled && timer3.Enabled && !timer0.Enabled)
-                        {
-                            timer0.Enabled = true;
-                        }
+                        timer.Enabled = true;
                     }
                 }
             }
