@@ -18,13 +18,22 @@ namespace SlushHub
 
         private bool running;
 
-        public UdpServer(int port, ManualResetEventSlim manualResetEventSlim)
+        public Action Log { get; }
+
+        private T lastValue;
+
+        public UdpServer(int port, ManualResetEventSlim manualResetEventSlim, string logKey)
         {
             ipEndPoint = new IPEndPoint(IPAddress.Any, port);
 
             this.manualResetEventSlim = manualResetEventSlim;
 
             listener = new UdpClient(port);
+
+            Log = () =>
+            {
+                Console.WriteLine($"{logKey}: {lastValue}");
+            };
         }
 
         public void Start()
@@ -67,6 +76,8 @@ namespace SlushHub
 
         protected virtual void OnDataReceived(T e)
         {
+            lastValue = e;
+
             DataReceived?.Invoke(this, e);
         }
 

@@ -2,9 +2,9 @@
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using System.Timers;
 using Bespoke.Common.Osc;
 using SlushHub.Statistics;
+using Timer = System.Timers.Timer;
 
 namespace SlushHub
 {
@@ -12,13 +12,13 @@ namespace SlushHub
     {
         private readonly IPAddress[] forwardingIPAddresses;
 
+        private readonly Timer timer0;
+
         private readonly Timer timer1;
 
         private readonly Timer timer2;
 
         private readonly Timer timer3;
-
-        private readonly Timer timer0;
 
         private readonly DataStatistics dataStatistics1;
 
@@ -26,17 +26,37 @@ namespace SlushHub
 
         private readonly DataStatistics dataStatistics3;
 
-        private const int threshold = 25;
+        private readonly int threshold;
 
-        public Pulser(int windowSize, IPAddress[] forwardingIPAddresses)
+        private readonly int maximumHeartRate;
+
+        private readonly int minimumHeartRate;
+
+        private int calls0;
+
+        private int called1;
+
+        private int called2;
+
+        private int called3;
+
+        public Action Log { get; }
+
+        public Pulser(int windowSize, IPAddress[] forwardingIPAddresses, int threshold, int maximumHeartRate, int minimumHeartRate)
         {
+            this.threshold = threshold;
+
+            this.maximumHeartRate = maximumHeartRate;
+
+            this.minimumHeartRate = minimumHeartRate;
+
             this.forwardingIPAddresses = forwardingIPAddresses;
 
             timer0 = new Timer { Enabled = false };
 
             timer0.Elapsed += (sender, args) => Task.Run(() =>
             {
-                x0++;
+                calls0++;
 
                 Broadcast("/heartbeat/average");
             });
@@ -45,7 +65,7 @@ namespace SlushHub
 
             timer1.Elapsed += (sender, args) => Task.Run(() =>
             {
-                x1++;
+                called1++;
 
                 Broadcast("/heartbeat/person1");
             });
@@ -54,7 +74,7 @@ namespace SlushHub
 
             timer2.Elapsed += (sender, args) => Task.Run(() =>
             {
-                x2++;
+                called2++;
 
                 Broadcast("/heartbeat/person2");
             });
@@ -63,7 +83,7 @@ namespace SlushHub
 
             timer3.Elapsed += (sender, args) => Task.Run(() =>
             {
-                x3++;
+                called3++;
 
                 Broadcast("/heartbeat/person3");
             });
@@ -74,29 +94,17 @@ namespace SlushHub
 
             dataStatistics3 = new DataStatistics(windowSize);
 
-            Task.Run(() =>
+            Log = () =>
             {
-                while (true)
-                {
-                    Console.Clear();
+                Console.WriteLine($"0: {timer0.Interval} {timer0.Enabled} {calls0}");
 
-                    Console.WriteLine($"0: {timer0.Interval} {timer0.Enabled} {x0}");
+                Console.WriteLine($"1: {timer1.Interval} {timer1.Enabled} {called1}");
 
-                    Console.WriteLine($"1: {timer1.Interval} {timer1.Enabled} {x1}");
+                Console.WriteLine($"2: {timer2.Interval} {timer2.Enabled} {called2}");
 
-                    Console.WriteLine($"2: {timer2.Interval} {timer2.Enabled} {x2}");
-
-                    Console.WriteLine($"3: {timer3.Interval} {timer3.Enabled} {x3}");
-
-                    System.Threading.Thread.Sleep(50);
-                }
-            });
+                Console.WriteLine($"3: {timer3.Interval} {timer3.Enabled} {called3}");
+            };
         }
-
-        private int x0;
-        private int x1;
-        private int x2;
-        private int x3;
 
         private void Broadcast(string person)
         {
@@ -115,29 +123,16 @@ namespace SlushHub
 
         private void Push0()
         {
-            double average = new double[] { dataStatistics1.Mean, dataStatistics2.Mean, dataStatistics3.Mean }.Average();
+            int average = (int)new double[] { dataStatistics1.Mean, dataStatistics2.Mean, dataStatistics3.Mean }.Average();
 
-            if (average > 0)
-            {
-                int interval = 60 * 1000 / (int)average;
-
-                if (Math.Abs(interval - timer0.Interval) > threshold)
-                {
-                    timer0.Interval = interval;
-
-                    if (timer1.Enabled && timer2.Enabled && timer3.Enabled && !timer0.Enabled)
-                    {
-                        timer0.Enabled = true;
-                    }
-                }
-            }
+            SetInterval(average, timer0);
         }
 
         public void Push1(int bpm)
         {
             dataStatistics1.Push(bpm);
 
-            SetInterval((int) dataStatistics1.Mean, timer1);
+            SetInterval((int)dataStatistics1.Mean, timer1);
 
             Push0();
         }
@@ -160,17 +155,32 @@ namespace SlushHub
             Push0();
         }
 
-        private static void SetInterval(int mean, Timer timer)
+        private void SetInterval(int mean, Timer timer)
         {
-            int interval = 60 * 1000 / mean;
+            int localMean = mean.LimitTo(minimumHeartRate, maximumHeartRate);
 
-            if (mean > 0 && Math.Abs(interval - timer.Interval) > threshold)
+            if (localMean > 0)
             {
-                timer.Interval = interval;
+                int interval = 60 * 1000 / localMean;
 
-                if (!timer.Enabled)
+                if (localMean > 0 && Math.Abs(interval - timer.Interval) > threshold)
                 {
-                    timer.Enabled = true;
+                    timer.Interval = interval;
+
+                    if (timer != timer0)
+                    {
+                        if (!timer.Enabled)
+                        {
+                            timer.Enabled = true;
+                        }
+                    }
+                    else
+                    {
+                        if (timer1.Enabled && timer2.Enabled && timer3.Enabled && !timer0.Enabled)
+                        {
+                            timer0.Enabled = true;
+                        }
+                    }
                 }
             }
         }

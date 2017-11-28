@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Bespoke.Common.Osc;
@@ -15,6 +17,14 @@ namespace SlushHub
             this.windowSize = windowSize;
 
             packetStatisticses = new ConcurrentDictionary<string, DataStatistics>();
+
+            Log = () =>
+            {
+                foreach (KeyValuePair<string, DataStatistics> dataStatisticse in packetStatisticses)
+                {
+                    Console.WriteLine($"{dataStatisticse.Key}: {dataStatisticse.Value.Mean}");
+                }
+            };
         }
 
         private readonly ConcurrentDictionary<string, DataStatistics> packetStatisticses;
@@ -55,5 +65,7 @@ namespace SlushHub
         public int this[string index] => packetStatisticses.ContainsKey(index) ? (int)packetStatisticses[index].Mean : 0;
 
         public string[] Addresses => packetStatisticses.Keys.ToArray();
+
+        public Action Log { get; }
     }
 }

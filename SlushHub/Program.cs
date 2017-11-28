@@ -20,9 +20,9 @@ namespace SlushHub
 
             if (!args.Any(argument => Regex.IsMatch(argument, @"--fis:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:,\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})*")))
             {
-                Console.WriteLine($"Usage: {Assembly.GetExecutingAssembly().GetName().Name} --fis:xxx.xxx.xxx.xxx[,xxx.xxx.xxx.xxx...] --ws:xxxx --oi:xxxx");
+                Console.WriteLine($"Usage: {Assembly.GetExecutingAssembly().GetName().Name} --fis:xxx.xxx.xxx.xxx[,xxx.xxx.xxx.xxx...] --ws:xxxx --oi:xxxx --hrt:xxxx --minhr:xxxx --maxhr:xxxx --log");
 
-                Console.WriteLine($"Example: {Assembly.GetExecutingAssembly().GetName().Name} --fis:192.168.1.30,192.168.1.42 --ws:100 --oi:125");
+                Console.WriteLine($"Example: {Assembly.GetExecutingAssembly().GetName().Name} --fis:192.168.1.30,192.168.1.42 --ws:100 --oi:125 --hrt:25 --minhr:40 --maxhr:150 --log");
 
                 return;
             }
@@ -32,6 +32,14 @@ namespace SlushHub
             int interval = 125;
 
             int windowSize = 50;
+
+            bool log = false;
+
+            int heartRateThreshold = 25;
+
+            int minimumHeartRate = 40;
+
+            int maximumHeartRate = 150;
 
             try
             {
@@ -51,6 +59,42 @@ namespace SlushHub
                 //
             }
 
+            try
+            {
+                heartRateThreshold = int.Parse(args.Single(argument => Regex.IsMatch(argument, @"--hrt:\d{1,5}")).Split(":")[1].Trim());
+            }
+            catch
+            {
+                //
+            }
+
+            try
+            {
+                minimumHeartRate = int.Parse(args.Single(argument => Regex.IsMatch(argument, @"--minhr:\d{1,5}")).Split(":")[1].Trim());
+            }
+            catch
+            {
+                //
+            }
+
+            try
+            {
+                maximumHeartRate = int.Parse(args.Single(argument => Regex.IsMatch(argument, @"--maxhr:\d{1,5}")).Split(":")[1].Trim());
+            }
+            catch
+            {
+                //
+            }
+
+            try
+            {
+                log = args.Any(argument => Regex.IsMatch(argument, @"--log"));
+            }
+            catch
+            {
+                //
+            }
+
             Processor processor = new Processor(windowSize);
 
             try
@@ -64,7 +108,7 @@ namespace SlushHub
                 return;
             }
 
-            Pulser pulser = new Pulser(windowSize, forwardingIPs);
+            Pulser pulser = new Pulser(windowSize, forwardingIPs, heartRateThreshold, maximumHeartRate, minimumHeartRate);
 
             OscServer oscServer = new OscServer(TransportType.Udp, IPAddress.Any, 8888);
 
@@ -85,23 +129,23 @@ namespace SlushHub
                             switch (person)
                             {
                                 case 1:
-                                {
-                                    pulser.Push1(bpm);
+                                    {
+                                        pulser.Push1(bpm);
 
-                                    break;
-                                }
+                                        break;
+                                    }
                                 case 2:
-                                {
-                                    pulser.Push2(bpm);
+                                    {
+                                        pulser.Push2(bpm);
 
-                                    break;
-                                }
+                                        break;
+                                    }
                                 case 3:
-                                {
-                                    pulser.Push3(bpm);
+                                    {
+                                        pulser.Push3(bpm);
 
-                                    break;
-                                }
+                                        break;
+                                    }
                             }
                         }
                     });
@@ -123,7 +167,7 @@ namespace SlushHub
                 return;
             }
 
-            UdpServer<int> emotionListener = new UdpServer<int>(8877, manualResetEventSlim);
+            UdpServer<int> emotionListener = new UdpServer<int>(8877, manualResetEventSlim, "Emotion");
 
             emotionListener.DataReceived += (sender, data) =>
             {
@@ -139,7 +183,7 @@ namespace SlushHub
 
             emotionListener.Start();
 
-            UdpServer<int> reasonListener = new UdpServer<int>(8899, manualResetEventSlim);
+            UdpServer<int> reasonListener = new UdpServer<int>(8899, manualResetEventSlim, "Reason");
 
             reasonListener.DataReceived += (sender, data) =>
             {
@@ -158,6 +202,27 @@ namespace SlushHub
             Broadcaster broadcaster = new Broadcaster(interval, processor, forwardingIPs);
 
             broadcaster.Start();
+
+            if (log)
+            {
+                Task.Run(() =>
+                {
+                    while (!manualResetEventSlim.IsSet)
+                    {
+                        Console.Clear();
+
+                        pulser.Log();
+
+                        emotionListener.Log();
+
+                        reasonListener.Log();
+
+                        processor.Log();
+
+                        Thread.Sleep(125);
+                    }
+                });
+            }
 
             manualResetEventSlim.Wait();
         }
